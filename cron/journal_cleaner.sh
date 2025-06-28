@@ -57,11 +57,7 @@ echo -e "${GREEN}Permissions set to 644 for $CRON_FILE${NC}"
 
 step 4 "Reloading cron service (optional)"
 if [ "$RELOAD_AFTER_INSTALL" = true ]; then
-  if command -v systemctl > /dev/null; then
-    sudo systemctl reload cron
-  else
-    sudo service cron reload
-  fi
+  service cron reload
   echo -e "${GREEN}✅ Cron service reloaded.${NC}"
 else
   echo -e "\033[1;33mSkipped cron reload. Use 'sudo systemctl reload cron' to apply changes.${NC}"
