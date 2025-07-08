@@ -31,6 +31,12 @@ bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/blackbox_install.sh
 bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/bbr_install.sh)
 ```
 
+### 🌊 SQL Exporter Remnawave 
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/grafana/sql_exporter/sql_install.sh)
+```
+
 ## 📄 License
 
 This project is licensed under the MIT License. You are free to use, modify, and distribute the scripts with proper
