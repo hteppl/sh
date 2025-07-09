@@ -20,7 +20,7 @@ step() {
   echo -e "\n${GREEN}[$1/4] $2${NC}"
 }
 
-echo -e "\n\033[1;35m✨ Starting SQL Exporter Remnawave setup wizard...\033[0m"
+echo -e "\n\033[1;35m✨ Starting SQL Exporter Remnawave setup wizard...${NC}"
 
 if [ ! -f "$COMPOSE_FILE" ]; then
   echo "${GREEN}$COMPOSE_FILE not found.${NC}"
@@ -38,12 +38,12 @@ if grep -q "$SERVICE_NAME:" "$COMPOSE_FILE"; then
     echo -e "${GREEN}Docker compose restarted.${NC}"
   fi
   docker ps
+  echo -e "${GREEN}\nRestore backup:    ${NC}mv $BACKUP_FILE $COMPOSE_FILE\n"
   exit 0
 fi
 
 step 1 "Creating backup: $BACKUP_FILE"
 cp "$COMPOSE_FILE" "$BACKUP_FILE"
-
 mkdir -p "$CONFIG_DIR"
 
 step 2 "Downloading config files..."
@@ -56,9 +56,18 @@ if [ -z "$INSERT_LINE" ]; then
   exit 1
 fi
 
+echo
+read -rp "Choose indent size (2 or 4): " indent_choice
+if [[ "$indent_choice" == "2" ]]; then
+  INDENT="  "
+else
+  INDENT="    "
+fi
+
 step 3 "Inserting sql_exporter service"
 DSN="postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@remnawave-db:5432/\${POSTGRES_DB}?sslmode=disable"
-awk -v insert_line="$INSERT_LINE" -v indent="    " -v svc="$SERVICE_NAME" -v img="$IMAGE_NAME" -v conf_dir="sql_exporter" -v conf_file="$CONFIG_FILE" -v extra_file="$EXTRA_FILE" -v dsn="$DSN" '
+awk -v insert_line="$INSERT_LINE" -v indent="$INDENT" -v svc="$SERVICE_NAME" -v img="$IMAGE_NAME" \
+    -v conf_dir="sql_exporter" -v conf_file="$CONFIG_FILE" -v extra_file="$EXTRA_FILE" -v dsn="$DSN" '
 NR == insert_line {
   print indent svc ":"
   print indent indent "image: " img
@@ -79,7 +88,6 @@ NR == insert_line {
   print indent indent "depends_on:"
   print indent indent indent "remnawave-db:"
   print indent indent indent indent "condition: service_healthy"
-
   print ""
 }
 { print }
@@ -102,4 +110,4 @@ docker ps
 
 echo -e "\n\033[1;35m✅ SQL Exporter is installed.${NC}"
 echo -e "${GREEN}\nCheck status:      ${NC}docker ps"
-echo -e "${GREEN}Restore backup:    ${NC}mv /opt/remnawave/docker-compose.yml.old /opt/remnawave/docker-compose.yml\n"
+echo -e "${GREEN}Restore backup:    ${NC}mv $BACKUP_FILE $COMPOSE_FILE\n"
