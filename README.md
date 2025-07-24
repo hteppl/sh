@@ -7,6 +7,24 @@ These scripts are designed to be fast, minimal, and ready to use in production o
 
 Each script can be executed directly from the terminal using `bash` and `curl`.
 
+### 📝 Swapfile
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/swapfile.sh)
+```
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/swapfile.sh) --enable
+```
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/swapfile.sh) --enable --size 2048
+```
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/swapfile.sh) --disable
+```
+
 ### 🔧 Prometheus
 
 ```shell
@@ -31,7 +49,7 @@ bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/blackbox_install.sh
 bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/bbr_install.sh)
 ```
 
-### 🌊 SQL Exporter Remnawave 
+### 🌊 SQL Exporter Remnawave
 
 ```shell
 bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/grafana/sql_exporter/sql_install.sh)
