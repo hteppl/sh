@@ -31,6 +31,12 @@ bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/swapfile.sh) --disa
 bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/prometheus_install.sh)
 ```
 
+### 🔔 Alertmanager
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/alertmanager_install.sh)
+```
+
 ### 📊 Node Exporter
 
 ```shell
