@@ -13,7 +13,14 @@ rule_files:
 
 scrape_configs:
   # System and node servers
-  # 9090 = 3x-ui-exporter, 9100 = node-exporter, 9399 = sql_exporter
+  # 9090 = 3x-ui-exporter, 9100 = node-exporter, 3001 = remnawave
+  - job_name: "remnawave"
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ "panel.domain.com:3001" ]
+    basic_auth:
+      username: "12345"
+      password: "12345"
   - job_name: "system_servers"
     static_configs:
       - targets: [ "127.0.0.1:9100" ]
@@ -26,14 +33,6 @@ scrape_configs:
         labels: { name: "de1", cluster: "1", location: " 🇩🇪 Frankfurt am Main" }
       - targets: [ "127.0.0.1:9090", "127.0.0.1:9100" ]
         labels: { name: "nl1", cluster: "2", location: " 🇳🇱 Amsterdam" }
-  # 9100 = node-exporter, 9399 = sql_exporter
-  - job_name: "node_servers_re"
-    static_configs:
-      - targets: [ "127.0.0.1:9100", "127.0.0.1:9399" ]
-        labels: { cluster: "1" }
-      - targets: [ "127.0.0.1:9100", "127.0.0.1:9399" ]
-        labels: { cluster: "2" }
-
   # Blackbox HTTP checks
   - job_name: "blackbox_https_probes"
     metrics_path: /probe
