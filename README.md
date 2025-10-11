@@ -43,6 +43,10 @@ bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/alertmanager_instal
 bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/node_install.sh)
 ```
 
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/node_install.sh) --ufw-allow-ip ip_addr
+```
+
 ### 📦 Blackbox Exporter
 
 ```shell
