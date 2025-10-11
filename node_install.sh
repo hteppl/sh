@@ -106,8 +106,25 @@ step 10 "Configuring firewall (UFW)"
 if command -v ufw >/dev/null 2>&1; then
   if sudo ufw status | grep -q "Status: active"; then
     if [[ -n "$ALLOW_IP" ]]; then
-      echo -e "${GREEN}UFW is active. Allowing port ${NODE_EXPORTER_PORT}/tcp from ${ALLOW_IP}...${NC}"
-      sudo ufw allow from "$ALLOW_IP" to any port "$NODE_EXPORTER_PORT" proto tcp
+      # Validate IPv4
+      if [[ "$ALLOW_IP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        # Add /32 mask if missing
+        ALLOW_IP_CLEAN="$ALLOW_IP/32"
+      elif [[ "$ALLOW_IP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$ ]]; then
+        ALLOW_IP_CLEAN="$ALLOW_IP"
+      else
+        echo -e "${YELLOW}Invalid IP format: '$ALLOW_IP'. Skipping UFW rule.${NC}"
+        ALLOW_IP_CLEAN=""
+      fi
+
+      if [[ -n "$ALLOW_IP_CLEAN" ]]; then
+        echo -e "${GREEN}UFW is active. Allowing ${NODE_EXPORTER_PORT}/tcp from ${ALLOW_IP_CLEAN}...${NC}"
+        if ! sudo ufw allow from "$ALLOW_IP_CLEAN" to any port "$NODE_EXPORTER_PORT" proto tcp 2>/tmp/ufw_HkaiHNy2_error.log; then
+          echo -e "${YELLOW}Failed to add UFW rule. Details:${NC}"
+          cat /tmp/ufw_HkaiHNy2_error.log
+        fi
+        rm -f /tmp/ufw_HkaiHNy2_error.log
+      fi
     else
       echo -e "${YELLOW}UFW is active but no --ufw-allow-ip provided. Skipping port rule.${NC}"
     fi
