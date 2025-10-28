@@ -1,0 +1,64 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "127.0.0.1:9093"
+
+rule_files:
+  - "rules/*.yml"
+
+scrape_configs:
+  # System servers (node-exporter)
+  # 9100 = node-exporter
+  - job_name: "system_servers"
+    static_configs:
+      - targets: [ "127.0.0.1:9100" ]
+        labels: { name: "Grafana" }
+      - targets: [ "1.2.3.4:9100" ]
+        labels: { name: "Solobot" }
+      - targets: [ "1.2.3.4:9100" ]
+        labels: { name: "Remnawave" }
+  # Remnawave servers (remnawave-metrics)
+  # 3001 = remnawave
+  - job_name: "remnawave"
+    metrics_path: /metrics
+    static_configs:
+      - targets: [ "panel.domain.com:3001" ]
+    basic_auth:
+      username: "12345"
+      password: "12345"
+    scrape_interval: 1m
+  # Node servers (node-exporter)
+  # 9100 = node-exporter
+  - job_name: "node_servers"
+    static_configs:
+      - targets: [ "127.0.0.1:9090", "127.0.0.1:9100" ]
+        labels: { name: "de1", cluster: "1", location: " 🇩🇪 Frankfurt am Main" }
+      - targets: [ "127.0.0.1:9090", "127.0.0.1:9100" ]
+        labels: { name: "nl1", cluster: "2", location: " 🇳🇱 Amsterdam" }
+    # Xray Checker (https://github.com/kutovoys/xray-checker)
+  - job_name: "xray_checker"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: [ "localhost:2112" ]
+    scrape_interval: 1m
+  # Blackbox HTTP checks (https://github.com/prometheus/blackbox_exporter)
+  - job_name: "blackbox_https_probes"
+    metrics_path: /probe
+    params:
+      module: [ http_2xx ]
+    static_configs:
+      - targets:
+          - https://node1.example.com
+          - https://node2.example.com
+    relabel_configs:
+      - source_labels: [ __address__ ]
+        target_label: __param_target
+      - source_labels: [ __param_target ]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115
