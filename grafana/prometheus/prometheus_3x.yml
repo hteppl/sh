@@ -21,7 +21,7 @@ scrape_configs:
       - targets: [ "1.2.3.4:9100" ]
         labels: { name: "Solobot" }
   # Node servers (node-exporter + 3x-ui-exporter)
-  # 9100 = node-exporter, 9100 = 3x-ui-exporter
+  # 9090 = node-exporter, 9100 = 3x-ui-exporter
   - job_name: "node_servers"
     static_configs:
       - targets: [ "127.0.0.1:9090", "127.0.0.1:9100" ]
