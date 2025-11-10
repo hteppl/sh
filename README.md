@@ -59,6 +59,20 @@ bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/blackbox_install.sh
 bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/bbr_install.sh)
 ```
 
+### ⚙️ IPv6
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/ipv6.sh)
+```
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/ipv6.sh) on
+```
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/ipv6.sh) off
+```
+
 ### 🌊 SQL Exporter Remnawave
 
 ```shell
