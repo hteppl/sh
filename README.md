@@ -53,6 +53,12 @@ bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/node_install.sh) --
 bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/blackbox_install.sh)
 ```
 
+### ⚙️ fail2ban
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/fail2ban.sh)
+```
+
 ### ⚙️ BBR
 
 ```shell
