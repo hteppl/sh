@@ -14,13 +14,10 @@ step() {
 
 echo -e "\n${PURPLE}✨ Starting fail2ban installation and configuration wizard...${NC}"
 
-step 1 "Updating package list"
-apt update
-
-step 2 "Installing fail2ban"
+step 1 "Installing fail2ban"
 apt install -y fail2ban
 
-step 3 "Creating jail.local configuration"
+step 2 "Creating jail.local configuration"
 cat > /etc/fail2ban/jail.local << EOF
 [DEFAULT]
 bantime = -1
@@ -38,11 +35,11 @@ EOF
 
 echo -e "${GREEN}Configuration file created at /etc/fail2ban/jail.local${NC}"
 
-step 4 "Restarting and enabling fail2ban service"
+step 3 "Restarting and enabling fail2ban service"
 systemctl restart fail2ban
 systemctl enable fail2ban
 
-step 5 "Verifying installation"
+step 4 "Verifying installation"
 systemctl status fail2ban --no-pager | head -n 10
 
 echo -e "\n${GREEN}Checking sshd jail status:${NC}"
