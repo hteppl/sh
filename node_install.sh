@@ -2,7 +2,7 @@
 
 set -e
 
-VERSION="1.9.1"
+VERSION="1.11.1"
 USER="node_exporter"
 BIN_DIR="/usr/local/bin"
 SERVICE_FILE="/etc/systemd/system/node_exporter.service"
@@ -131,11 +131,10 @@ if command -v ufw >/dev/null 2>&1; then
   else
     echo -e "${YELLOW}UFW is installed but not enabled. Skipping.${NC}"
   fi
+  sudo ufw status
 else
   echo -e "${YELLOW}UFW not installed. Skipping firewall configuration.${NC}"
 fi
-
-ufw status
 
 echo -e "\n\033[1;35m✅ Node Exporter is installed.${NC}"
 echo -e "${GREEN}\nCheck status:      ${NC}sudo systemctl status node_exporter --no-pager"
