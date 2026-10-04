@@ -79,6 +79,30 @@ bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/ipv6.sh) on
 bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/ipv6.sh) off
 ```
 
+### 🏃 GitHub Actions Runners
+
+Get a registration token in the repository or organization's **Settings → Actions → Runners → New self-hosted runner**.
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/gh_runners.sh) -n 3 -u https://github.com/org/repo -t TOKEN
+```
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/gh_runners.sh) -n 3 -u https://github.com/org -t TOKEN -p build -l docker,heavy -g default
+```
+
+```shell
+RUNNER_TOKEN=TOKEN bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/gh_runners.sh) -n 2 -u https://github.com/org/repo
+```
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/gh_runners.sh) --remove -u https://github.com/org/repo -t TOKEN
+```
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/gh_runners.sh) --help
+```
+
 ### 🌊 SQL Exporter Remnawave
 
 ```shell
