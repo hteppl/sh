@@ -106,8 +106,34 @@ case "$(uname -m)" in
   *)             die "Unsupported architecture: $(uname -m)" ;;
 esac
 
+# git (actions/checkout clones without .git otherwise), tar/gzip/unzip (tool cache, artifacts), curl
+REQUIRED_CMDS=( git curl tar gzip unzip )
+missing=()
+for cmd in "${REQUIRED_CMDS[@]}"; do
+  command -v "$cmd" >/dev/null || missing+=( "$cmd" )
+done
+if [[ ${#missing[@]} -gt 0 ]]; then
+  log "Installing missing packages: ${missing[*]}"
+  pkgs=( "${missing[@]}" ca-certificates )
+  if command -v apt-get >/dev/null; then
+    apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${pkgs[@]}"
+  elif command -v dnf >/dev/null; then
+    dnf install -y -q "${pkgs[@]}"
+  elif command -v yum >/dev/null; then
+    yum install -y -q "${pkgs[@]}"
+  elif command -v zypper >/dev/null; then
+    zypper --non-interactive install "${pkgs[@]}"
+  elif command -v apk >/dev/null; then
+    apk add --no-cache "${pkgs[@]}"
+  else
+    die "Missing ${missing[*]} and no supported package manager found, install them manually"
+  fi
+  for cmd in "${missing[@]}"; do
+    command -v "$cmd" >/dev/null || die "Failed to install $cmd"
+  done
+fi
+
 if [[ -z "$TARBALL" ]]; then
-  command -v curl >/dev/null || die "curl is required (or use --tarball)"
   if [[ -z "$VERSION" ]]; then
     log "Detecting latest runner version"
     release="$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest)" \
@@ -165,6 +191,11 @@ for i in $(seq 1 "$COUNT"); do
 
   created=$((created + 1))
 done
+
+if [[ $deps_done -eq 0 ]]; then
+  log "Installing runner system dependencies"
+  "$BASE_DIR/actions-runner-1/bin/installdependencies.sh" || warn "installdependencies.sh failed, continuing"
+fi
 
 log "Done: $created created, $skipped skipped."
 log "Service status: systemctl list-units 'actions.runner.*'"
