@@ -110,8 +110,9 @@ if [[ -z "$TARBALL" ]]; then
   command -v curl >/dev/null || die "curl is required (or use --tarball)"
   if [[ -z "$VERSION" ]]; then
     log "Detecting latest runner version"
-    VERSION="$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest \
-      | grep -m1 '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/')"
+    release="$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest)" \
+      || die "Failed to query GitHub API, use --version"
+    VERSION="$(sed -nE 's/.*"tag_name": *"v?([^"]+)".*/\1/p' <<<"$release" | head -n1)"
     [[ -n "$VERSION" ]] || die "Failed to detect version, use --version"
   fi
   CACHE_DIR="$BASE_DIR/.runner-cache"
