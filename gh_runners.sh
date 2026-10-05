@@ -12,6 +12,7 @@ BASE_DIR=""
 VERSION=""
 TARBALL=""
 SKIP_DEPS=0
+SKIP_UV=0
 MODE="install"
 
 log()  { printf '\033[1;32m[+]\033[0m %s\n' "$*"; }
@@ -37,6 +38,7 @@ Optional:
       --version X.Y.Z   runner version (default: latest release)
       --tarball PATH    use a local archive instead of downloading
       --skip-deps       do not run installdependencies.sh
+      --skip-uv         do not install uv (Python package manager)
       --remove          stop, uninstall services and unregister all instances
   -h, --help            show this help
 EOF
@@ -55,6 +57,7 @@ while [[ $# -gt 0 ]]; do
     --version)    VERSION="${2#v}"; shift 2 ;;
     --tarball)    TARBALL="$2"; shift 2 ;;
     --skip-deps)  SKIP_DEPS=1; shift ;;
+    --skip-uv)    SKIP_UV=1; shift ;;
     --remove)     MODE="remove"; shift ;;
     -h|--help)    usage; exit 0 ;;
     *)            usage; die "Unknown argument: $1" ;;
@@ -106,8 +109,9 @@ case "$(uname -m)" in
   *)             die "Unsupported architecture: $(uname -m)" ;;
 esac
 
-# git (actions/checkout clones without .git otherwise), tar/gzip/unzip (tool cache, artifacts), curl, make
-REQUIRED_CMDS=( git curl tar gzip unzip make )
+# git (actions/checkout clones without .git otherwise), tar/gzip/unzip (tool cache, artifacts), curl, make,
+# gcc/python3 (building native Python packages with uv)
+REQUIRED_CMDS=( git curl tar gzip unzip make gcc python3 )
 missing=()
 for cmd in "${REQUIRED_CMDS[@]}"; do
   command -v "$cmd" >/dev/null || missing+=( "$cmd" )
@@ -131,6 +135,20 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   for cmd in "${missing[@]}"; do
     command -v "$cmd" >/dev/null || die "Failed to install $cmd"
   done
+fi
+
+# installed before registration so /usr/local/bin is in the PATH captured into each runner's .path
+if [[ $SKIP_UV -eq 0 ]]; then
+  if command -v uv >/dev/null; then
+    log "uv already installed: $(uv --version)"
+  else
+    log "Installing uv to /usr/local/bin"
+    curl -LsSf https://astral.sh/uv/install.sh \
+      | env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh \
+      || die "Failed to install uv, use --skip-uv"
+    /usr/local/bin/uv --version >/dev/null || die "uv installed but not runnable"
+    log "Installed $(/usr/local/bin/uv --version)"
+  fi
 fi
 
 if [[ -z "$TARBALL" ]]; then
