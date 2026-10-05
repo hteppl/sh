@@ -106,8 +106,8 @@ case "$(uname -m)" in
   *)             die "Unsupported architecture: $(uname -m)" ;;
 esac
 
-# git (actions/checkout clones without .git otherwise), tar/gzip/unzip (tool cache, artifacts), curl
-REQUIRED_CMDS=( git curl tar gzip unzip )
+# git (actions/checkout clones without .git otherwise), tar/gzip/unzip (tool cache, artifacts), curl, make
+REQUIRED_CMDS=( git curl tar gzip unzip make )
 missing=()
 for cmd in "${REQUIRED_CMDS[@]}"; do
   command -v "$cmd" >/dev/null || missing+=( "$cmd" )
