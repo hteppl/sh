@@ -13,6 +13,8 @@ VERSION=""
 TARBALL=""
 SKIP_DEPS=0
 SKIP_UV=0
+PLAYWRIGHT=0
+PLAYWRIGHT_VERSION="latest"
 MODE="install"
 
 log()  { printf '\033[1;32m[+]\033[0m %s\n' "$*"; }
@@ -39,6 +41,12 @@ Optional:
       --tarball PATH    use a local archive instead of downloading
       --skip-deps       do not run installdependencies.sh
       --skip-uv         do not install uv (Python package manager)
+      --playwright      install the system libraries and fonts Playwright's Chromium needs
+                        (Debian/Ubuntu only); jobs then run `npx playwright install chromium`
+                        without --with-deps, which would need root
+      --playwright-version X.Y.Z
+                        Playwright release whose dependency list to use (default: latest);
+                        match the version in the project's package.json
       --remove          stop, uninstall services and unregister all instances
   -h, --help            show this help
 EOF
@@ -58,6 +66,8 @@ while [[ $# -gt 0 ]]; do
     --tarball)    TARBALL="$2"; shift 2 ;;
     --skip-deps)  SKIP_DEPS=1; shift ;;
     --skip-uv)    SKIP_UV=1; shift ;;
+    --playwright) PLAYWRIGHT=1; shift ;;
+    --playwright-version) PLAYWRIGHT_VERSION="${2#v}"; PLAYWRIGHT=1; shift 2 ;;
     --remove)     MODE="remove"; shift ;;
     -h|--help)    usage; exit 0 ;;
     *)            usage; die "Unknown argument: $1" ;;
@@ -109,16 +119,24 @@ case "$(uname -m)" in
   *)             die "Unsupported architecture: $(uname -m)" ;;
 esac
 
-# git (actions/checkout clones without .git otherwise), tar/gzip/unzip (tool cache, artifacts), curl, make,
-# gcc/python3 (building native Python packages with uv)
-REQUIRED_CMDS=( git curl tar gzip unzip make gcc python3 )
+# xz: setup-node archives; zstd: actions/cache compression; gcc/python3: native builds with uv
+REQUIRED_CMDS=( git curl tar gzip unzip make gcc python3 xz zstd )
+
+package_for() {
+  case "$1" in
+    xz) command -v apt-get >/dev/null && echo xz-utils || echo xz ;;
+    *)  echo "$1" ;;
+  esac
+}
+
 missing=()
 for cmd in "${REQUIRED_CMDS[@]}"; do
   command -v "$cmd" >/dev/null || missing+=( "$cmd" )
 done
 if [[ ${#missing[@]} -gt 0 ]]; then
   log "Installing missing packages: ${missing[*]}"
-  pkgs=( "${missing[@]}" ca-certificates )
+  pkgs=( ca-certificates )
+  for cmd in "${missing[@]}"; do pkgs+=( "$(package_for "$cmd")" ); done
   if command -v apt-get >/dev/null; then
     apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${pkgs[@]}"
   elif command -v dnf >/dev/null; then
@@ -137,7 +155,7 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   done
 fi
 
-# installed before registration so /usr/local/bin is in the PATH captured into each runner's .path
+# before registration so /usr/local/bin lands in each runner's .path
 if [[ $SKIP_UV -eq 0 ]]; then
   if command -v uv >/dev/null; then
     log "uv already installed: $(uv --version)"
@@ -149,6 +167,36 @@ if [[ $SKIP_UV -eq 0 ]]; then
     /usr/local/bin/uv --version >/dev/null || die "uv installed but not runnable"
     log "Installed $(/usr/local/bin/uv --version)"
   fi
+fi
+
+# several runners' file watchers exhaust the default 128 inotify instances
+SYSCTL_FILE=/etc/sysctl.d/90-gh-runners.conf
+if [[ ! -f "$SYSCTL_FILE" ]]; then
+  log "Raising inotify limits ($SYSCTL_FILE)"
+  printf 'fs.inotify.max_user_instances = 1024\nfs.inotify.max_user_watches = 524288\n' > "$SYSCTL_FILE"
+  sysctl -q -p "$SYSCTL_FILE" || warn "Failed to apply $SYSCTL_FILE, it takes effect after a reboot"
+fi
+
+# --with-deps needs sudo, so system libs are installed here as root; browsers stay per job
+if [[ $PLAYWRIGHT -eq 1 ]]; then
+  command -v apt-get >/dev/null || die "--playwright supports Debian/Ubuntu only (Playwright's install-deps uses apt)"
+  NPX="$(command -v npx || true)"
+  NODE_TMP=""
+  if [[ -z "$NPX" ]]; then
+    case "$ARCH" in x64) node_arch="x64" ;; arm64) node_arch="arm64" ;; *) die "--playwright: no Node build for $ARCH" ;; esac
+    node_version="$(curl -fsSL https://nodejs.org/dist/index.json | python3 -c \
+      'import json,sys; print(next(r["version"] for r in json.load(sys.stdin) if r["lts"]))')" \
+      || die "Failed to find the current Node LTS"
+    NODE_TMP="$(mktemp -d)"
+    log "Fetching Node $node_version to run Playwright's installer (removed afterwards)"
+    curl -fsSL "https://nodejs.org/dist/$node_version/node-$node_version-linux-$node_arch.tar.xz" \
+      | tar xJ -C "$NODE_TMP" --strip-components=1 || die "Failed to download Node $node_version"
+    NPX="$NODE_TMP/bin/npx"
+  fi
+  log "Installing Playwright $PLAYWRIGHT_VERSION system dependencies for Chromium"
+  PATH="$(dirname "$NPX"):$PATH" "$NPX" --yes "playwright@$PLAYWRIGHT_VERSION" install-deps chromium \
+    || die "playwright install-deps failed"
+  if [[ -n "$NODE_TMP" ]]; then rm -rf "$NODE_TMP"; fi
 fi
 
 if [[ -z "$TARBALL" ]]; then
@@ -203,6 +251,10 @@ for i in $(seq 1 "$COUNT"); do
 
   log "[$name] registering at $URL"
   as_runner "$dir" ./config.sh "${cfg[@]}"
+
+  # lets jobs on one host avoid collisions, e.g. PORT=$((4310 + RUNNER_INSTANCE * 10))
+  printf 'RUNNER_INSTANCE=%s\n' "$i" >> "$dir/.env"
+  chown "$RUNNER_USER:$RUNNER_USER" "$dir/.env"
 
   log "[$name] installing and starting service"
   ( cd "$dir" && ./svc.sh install "$RUNNER_USER" && ./svc.sh start )

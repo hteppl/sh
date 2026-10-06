@@ -95,6 +95,13 @@ bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/gh_runners.sh) -n 3
 RUNNER_TOKEN=TOKEN bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/gh_runners.sh) -n 2 -u https://github.com/org/repo
 ```
 
+Runners for browser tests (Debian/Ubuntu): installs the libraries and fonts Playwright's Chromium needs, so jobs
+run `npx playwright install chromium` without `--with-deps`. Pin the version from the project's `package.json`:
+
+```shell
+bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/gh_runners.sh) -n 3 -u https://github.com/org/repo -t TOKEN -l web,playwright --playwright --playwright-version 1.63.0
+```
+
 ```shell
 bash <(curl -fsSL raw.githubusercontent.com/hteppl/sh/master/gh_runners.sh) --remove -u https://github.com/org/repo -t TOKEN
 ```
