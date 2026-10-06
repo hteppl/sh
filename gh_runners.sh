@@ -42,7 +42,7 @@ Optional:
       --skip-deps       do not run installdependencies.sh
       --skip-uv         do not install uv (Python package manager)
       --playwright      install the system libraries and fonts Playwright's Chromium needs
-                        (Debian/Ubuntu only); jobs then run `npx playwright install chromium`
+                        (Debian/Ubuntu only); jobs then run "npx playwright install chromium"
                         without --with-deps, which would need root
       --playwright-version X.Y.Z
                         Playwright release whose dependency list to use (default: latest);
