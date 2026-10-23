@@ -15,6 +15,7 @@ SKIP_DEPS=0
 SKIP_UV=0
 PLAYWRIGHT=0
 PLAYWRIGHT_VERSION="latest"
+DOCKER=0
 MODE="install"
 
 log()  { printf '\033[1;32m[+]\033[0m %s\n' "$*"; }
@@ -47,6 +48,9 @@ Optional:
       --playwright-version X.Y.Z
                         Playwright release whose dependency list to use (default: latest);
                         match the version in the project's package.json
+      --docker          let jobs use the host Docker daemon: installs Docker if missing, adds the
+                        runner user to the docker group and restarts already configured runners
+                        (docker group membership is root-equivalent on this host)
       --remove          stop, uninstall services and unregister all instances
   -h, --help            show this help
 EOF
@@ -68,6 +72,7 @@ while [[ $# -gt 0 ]]; do
     --skip-uv)    SKIP_UV=1; shift ;;
     --playwright) PLAYWRIGHT=1; shift ;;
     --playwright-version) PLAYWRIGHT_VERSION="${2#v}"; PLAYWRIGHT=1; shift 2 ;;
+    --docker)     DOCKER=1; shift ;;
     --remove)     MODE="remove"; shift ;;
     -h|--help)    usage; exit 0 ;;
     *)            usage; die "Unknown argument: $1" ;;
@@ -197,6 +202,29 @@ if [[ $PLAYWRIGHT -eq 1 ]]; then
   PATH="$(dirname "$NPX"):$PATH" "$NPX" --yes "playwright@$PLAYWRIGHT_VERSION" install-deps chromium \
     || die "playwright install-deps failed"
   if [[ -n "$NODE_TMP" ]]; then rm -rf "$NODE_TMP"; fi
+fi
+
+# group membership is read when a service starts, so configured runners are restarted below
+if [[ $DOCKER -eq 1 ]]; then
+  if ! command -v docker >/dev/null; then
+    log "Installing Docker (get.docker.com)"
+    curl -fsSL https://get.docker.com | sh || die "Docker installation failed"
+  fi
+  systemctl enable --now docker >/dev/null 2>&1 || warn "Failed to enable the docker service"
+  if id -nG "$RUNNER_USER" | tr ' ' '\n' | grep -qx docker; then
+    log "$RUNNER_USER is already in the docker group"
+  else
+    log "Adding $RUNNER_USER to the docker group"
+    usermod -aG docker "$RUNNER_USER"
+    shopt -s nullglob
+    for dir in "$BASE_DIR"/actions-runner-[0-9]*; do
+      [[ -f "$dir/.service" ]] || continue
+      log "Restarting $(basename "$dir") to pick up the docker group"
+      ( cd "$dir" && ./svc.sh stop && ./svc.sh start ) || warn "Failed to restart $dir"
+    done
+    shopt -u nullglob
+  fi
+  runuser -u "$RUNNER_USER" -- docker info >/dev/null || die "$RUNNER_USER still cannot reach the Docker daemon"
 fi
 
 if [[ -z "$TARBALL" ]]; then
